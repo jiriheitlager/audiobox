@@ -183,7 +183,7 @@ void OnButtonPressed(byte buttonPressedId) {
 }
 
 bool IsControlButton(byte buttonId){
-  return buttonId == NEXT_BUTTON_ID || buttonId == PREV_BUTTON_ID
+  return buttonId == NEXT_BUTTON_ID || buttonId == PREV_BUTTON_ID;
 }
 
 void Reset(int dirIndex, int songIndex){
@@ -203,7 +203,7 @@ void Reset(int dirIndex, int songIndex){
   songSelectCursor = songIndex;
 }
 
-int GetNextFileIndex(int dirIndex, int direction){
+int GetNextFileIndex(int dirIndex, int dir){
   int next = songSelectCursor + dir;
   int numberOfFiles = sumFilesPerFolderCache[dirIndex];
   if (next <= 0 || next >= numberOfFiles)
@@ -274,7 +274,7 @@ void UpdateVolume() {
 
   // recognize state (volume) changes in steps of two
   int stepSize = 1;
-  if (pinValue < volumeState - stepSize || pinValue > volumeState + stepSize)
+  if (pinValue < currentVolume - stepSize || pinValue > currentVolume + stepSize)
   {
     // remember the new volume state
     currentVolume = pinValue;
