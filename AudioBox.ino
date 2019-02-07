@@ -44,9 +44,10 @@ Adafruit_VS1053_FilePlayer musicPlayer =  Adafruit_VS1053_FilePlayer(SHIELD_RESE
 #define SESSION_TEXT_FILE_PATH "init/with.txt"
 
 int currentVolume = MIN_VOLUME;
-byte pinArray[] = {2, 5, 8, 9, 10};
 byte pinArrayLength = 5;
-int songSelectCursor = -1;
+byte pinArray[5] = {2, 5, 8, 9, 10};
+int currentFileIndex = -1;
+byte currentDirIndex = BYTE_MAX;
 
 void setup() {
 
@@ -104,6 +105,7 @@ void BuildPlaylistIndex() {
           ++sumFiles;
         }
       } else {
+        // not sure if this call is need, we should remove it and test it.
         audioDirectory.rewindDirectory();
         audioDirectory.close();
         break;
@@ -114,7 +116,6 @@ void BuildPlaylistIndex() {
 }
 
 byte inputstate = READY_FOR_INPUT;
-byte currentDirIndex = BYTE_MAX;
 void loop() {
   byte buttonPressed = GetCurrentPressedButton();
 
@@ -129,8 +130,8 @@ void loop() {
 
 byte GetCurrentPressedButton() {
   for (byte i = 0; i < 7; ++i) {
-    byte reading = musicPlayer.GPIO_digitalRead(i + 1);
-    bool pressedDown = reading == HIGH;
+    byte pinNumber = i + 1;
+    bool pressedDown = musicPlayer.GPIO_digitalRead(pinNumber) == HIGH;
     if (pressedDown) {
       return i;
     }
@@ -155,7 +156,7 @@ void OnButtonPressed(byte buttonPressedId) {
       // illegal button id.
       return;
     case NEXT_BUTTON_ID:
-      if(currentDirIndex != BYTE_MAX){
+      if (currentDirIndex != BYTE_MAX) {
         Serial.print("Play next from dir: ");
         Serial.print(currentDirIndex);
         Serial.println();
@@ -163,7 +164,7 @@ void OnButtonPressed(byte buttonPressedId) {
       }
       break;
     case PREV_BUTTON_ID:
-      if(currentDirIndex != BYTE_MAX){
+      if (currentDirIndex != BYTE_MAX) {
         Serial.print("Play previous from dir: ");
         Serial.print(currentDirIndex);
         Serial.println();
@@ -172,7 +173,7 @@ void OnButtonPressed(byte buttonPressedId) {
       break;
     default:
       bool shouldReset = currentDirIndex != buttonPressedId;
-      if(shouldReset){
+      if (shouldReset) {
         Reset(buttonPressedId, -1);
       }
       next = 1;
@@ -182,63 +183,72 @@ void OnButtonPressed(byte buttonPressedId) {
   Play(currentDirIndex, nextFileIndex);
 }
 
-bool IsControlButton(byte buttonId){
+bool IsControlButton(byte buttonId) {
   return buttonId == NEXT_BUTTON_ID || buttonId == PREV_BUTTON_ID;
 }
 
-void Reset(int dirIndex, int songIndex){
+void Reset(int dirIndex, int fileIndex) {
   Serial.print("Resetting dir from ");
   Serial.print(currentDirIndex);
   Serial.print(" to " );
   Serial.print(dirIndex);
   Serial.println();
 
-  Serial.print("Resetting songIndex from ");
-  Serial.print(songSelectCursor);
+  Serial.print("Resetting currentFileIndex from ");
+  Serial.print(currentFileIndex);
   Serial.print(" to " );
-  Serial.println(songIndex);
+  Serial.println(fileIndex);
   Serial.println();
 
   currentDirIndex = dirIndex;
-  songSelectCursor = songIndex;
+  currentFileIndex = fileIndex;
 }
 
-int GetNextFileIndex(int dirIndex, int dir){
-  int next = songSelectCursor + dir;
+int GetNextFileIndex(int dirIndex, int dir) {
+  int next = currentFileIndex + dir;
   int numberOfFiles = sumFilesPerFolderCache[dirIndex];
   if (next <= 0 || next >= numberOfFiles)
   {
-    return songSelectCursor;
+    return currentFileIndex;
   }
-  songSelectCursor = next;
-  return songSelectCursor;
+  currentFileIndex = next;
+  return currentFileIndex;
 }
 
-void ContinuePlayingFromSession(){
-  // if(SD.exists(SESSION_TEXT_FILE_PATH)){
-  //     File textFile = SD.open(SESSION_TEXT_FILE_PATH, O_READ);
-  //     string finalString="";
-  //     while (textFile.available()){
-  //       finalString+=(char)textFile.read();
-  //     }
-  // }
-  int directoryIndexInFile = 3;
-  int songIndexInFile = 1;
-  Reset(directoryIndexInFile, songIndexInFile);
-  Play(currentDirIndex,songSelectCursor);
+void ContinuePlayingFromSession() {
+  if (SD.exists(SESSION_TEXT_FILE_PATH)) {
+    File textFile = SD.open(SESSION_TEXT_FILE_PATH, O_READ);
+    String stored = "";
+    while (textFile.available()) {
+      stored += (char)textFile.read();
+    }
+    textFile.close();
+
+    int directoryIndexInFile, songIndexInFile;
+    for (int i = 0; i < stored.length(); i++) {
+      if (stored.substring(i, i + 1) == ",") {
+        directoryIndexInFile = stored.substring(0, i).toInt();
+        songIndexInFile = stored.substring(i + 1).toInt();
+        break;
+      }
+
+      Reset(directoryIndexInFile, songIndexInFile);
+      Play(currentDirIndex, currentFileIndex);
+    }
+  }
 }
 
-void Play(int dirIndex, int songIndex){
+void Play(int dirIndex, int fileIndex) {
 
   Serial.print("Request to start playing file : ");
   Serial.print(dirIndex);
   Serial.print(" / " );
-  Serial.print(songIndex);
+  Serial.print(fileIndex);
   Serial.println();
 
-  String songSelectorAsString = String(songIndex);
+  String fileIndexAsString = String(fileIndex);
   String dirIndexAsString = String(dirIndex);
-  String audioFile = "audio/" + dirIndexAsString + "/t_" + dirIndexAsString + "_" + songSelectorAsString + ".mp3";
+  String audioFile = "audio/" + dirIndexAsString + "/t_" + dirIndexAsString + "_" + fileIndexAsString + ".mp3";
 
   // Length (with one extra character for the null terminator)
   int str_len = audioFile.length() + 1;
@@ -254,14 +264,14 @@ void Play(int dirIndex, int songIndex){
   musicPlayer.stopPlaying();
   // we can only write to the SD card when the audio is stopped.
   // SD is either read or write.
-  PersistCurrentSelectedData(dirIndexAsString, songSelectorAsString);
+  PersistCurrentSelectedData(dirIndexAsString, fileIndexAsString);
 
   musicPlayer.startPlayingFile(char_array);
 }
 
-void PersistCurrentSelectedData(String dirIndexAsString, String songSelectorAsString) {
+void PersistCurrentSelectedData(String dirIndexAsString, String fileIndexAsString) {
   File sessionTextFile = SD.open(SESSION_TEXT_FILE_PATH, O_CREAT | O_TRUNC | O_WRITE);
-  sessionTextFile.println(dirIndexAsString + "," + songSelectorAsString);
+  sessionTextFile.println(dirIndexAsString + "," + fileIndexAsString);
   sessionTextFile.close();
 }
 
