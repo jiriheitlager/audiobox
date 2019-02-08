@@ -30,7 +30,7 @@
 Adafruit_VS1053_FilePlayer musicPlayer =  Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
 
 #define VOLUME_PIN A1 // The volume pin which is connected to the potentiometer.
-#define PIN_REPLACE_FOR_11 A1 // The volume pin which is connected to the potentiometer.
+#define PIN_REPLACE_FOR_11 A0 // The volume pin which is connected to the potentiometer.
 #define MAX_VOLUME 5 // Volume is the lower the louder.
 #define MIN_VOLUME 100 // Volume is the lower the louder.
 
@@ -71,8 +71,10 @@ void setup() {
   SetupPins();
   BuildPlaylistIndex();
   musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);
-  //  musicPlayer.sineTest(0x44, 600);    // Make a tone to indicate all is fine and initilized
+//    musicPlayer.sineTest(0x44, 600);    // Make a tone to indicate all is fine and initilized
   musicPlayer.playFullFile("intro.mp3");
+//ContinuePlayingFromSession();
+//  Reset(0, -1);
 }
 
 
@@ -130,33 +132,30 @@ void BuildPlaylistIndex() {
 void loop() {
   if (startingUp) {
     if (musicPlayer.readyForData()) {
-      Serial.println("Intro end");
       startingUp = false;
       ContinuePlayingFromSession();
-
-    }
-    return;
-  }
-
-  if (musicPlayer.readyForData()) {
-    // the current track has stopped playing so we continue
-    if (UpdateFileCursor(currentDirIndex, 1)) {
-      PlayNext();
-    } else {
-      musicPlayer.stopPlaying();
     }
     return;
   }
 
   UpdateVolume();
-
+ 
+  if (musicPlayer.readyForData()) {
+    // the current track has stopped playing so we continue
+    if (UpdateFileCursor(currentDirIndex, 1)) {
+      PlayNext();
+    } else {
+      Reset(currentDirIndex, 0);
+      PlayNext();
+    }
+  }
+  
   byte buttonPressed = GetCurrentPressedButton();
-
   if (inputstate == HANDLING_INPUT && buttonPressed == BYTE_MAX) {
-  inputstate = READY_FOR_INPUT;
-} else if (inputstate == READY_FOR_INPUT && buttonPressed != BYTE_MAX) {
-  inputstate = HANDLING_INPUT;
-  OnButtonPressed(buttonPressed);
+    inputstate = READY_FOR_INPUT;
+  } else if (inputstate == READY_FOR_INPUT && buttonPressed != BYTE_MAX) {
+    inputstate = HANDLING_INPUT;
+    OnButtonPressed(buttonPressed);
   }
 
 }
@@ -289,12 +288,12 @@ void PlayNext() {
 
   Serial.print("Playing next file");
 
-  // TODO: remove this +1 files should also be 0 based
-  String fileIndexAsString = String(currentFileIndex + 1);
+  String fileIndexAsString = String(currentFileIndex);
   String dirIndexAsString = String(currentDirIndex);
-  String audioFile = "audio/" + dirIndexAsString + "/t_" + dirIndexAsString + "_" + fileIndexAsString + ".mp3";
-
-
+//  String audioFile = "audio/" + dirIndexAsString + "/t_" + dirIndexAsString + "_" + fileIndexAsString + ".mp3";
+  String audioFile = "audio/" + dirIndexAsString + "/" + fileIndexAsString + ".mp3";
+Serial.print("AUDIO ===>" );
+Serial.println(audioFile);
   // Length (with one extra character for the null terminator)
   int str_len = audioFile.length() + 1;
   //  // Prepare the character array (the buffer)
