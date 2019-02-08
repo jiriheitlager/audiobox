@@ -51,7 +51,7 @@ int currentFileIndex = -1;
 byte currentDirIndex = BYTE_MAX;
 byte inputstate = READY_FOR_INPUT;
 bool startingUp = true;
-
+bool resetAtStart = false;
 void setup() {
 
   Serial.begin(9600);
@@ -71,10 +71,16 @@ void setup() {
   SetupPins();
   BuildPlaylistIndex();
   musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);
-//    musicPlayer.sineTest(0x44, 600);    // Make a tone to indicate all is fine and initilized
-  musicPlayer.playFullFile("intro.mp3");
-//ContinuePlayingFromSession();
-//  Reset(0, -1);
+
+
+  resetAtStart = !digitalRead(PIN_REPLACE_FOR_11) && !digitalRead(9);
+  Serial.print("Boot value ");
+  Serial.println(resetAtStart );
+  if (!resetAtStart) {
+    musicPlayer.playFullFile("intro.mp3");
+  }else{
+    musicPlayer.sineTest(0x44, 600);
+  }
 }
 
 
@@ -139,7 +145,15 @@ void loop() {
   }
 
   UpdateVolume();
- 
+
+  if (startingUp && resetAtStart) {
+    resetAtStart = false;
+    startingUp = false;
+    Reset(0, 0);
+    PlayNext();
+    return;
+  }
+  
   if (musicPlayer.readyForData()) {
     // the current track has stopped playing so we continue
     if (UpdateFileCursor(currentDirIndex, 1)) {
@@ -149,7 +163,7 @@ void loop() {
       PlayNext();
     }
   }
-  
+
   byte buttonPressed = GetCurrentPressedButton();
   if (inputstate == HANDLING_INPUT && buttonPressed == BYTE_MAX) {
     inputstate = READY_FOR_INPUT;
@@ -270,7 +284,7 @@ void ContinuePlayingFromSession() {
       if (stored.substring(i, i + 1) == ",") {
         Serial.print("Stored");
         int storedDirIndex = stored.substring(0, i).toInt();
-        int storedFileIndex = stored.substring(i + 1).toInt() - 1;
+        int storedFileIndex = stored.substring(i + 1).toInt();
         Reset(storedDirIndex, storedFileIndex);
         if (UpdateFileCursor(storedDirIndex, 0)) {
           PlayNext();
@@ -286,14 +300,14 @@ void ContinuePlayingFromSession() {
 
 void PlayNext() {
 
-  Serial.print("Playing next file");
+  Serial.println("Playing next file");
 
   String fileIndexAsString = String(currentFileIndex);
   String dirIndexAsString = String(currentDirIndex);
-//  String audioFile = "audio/" + dirIndexAsString + "/t_" + dirIndexAsString + "_" + fileIndexAsString + ".mp3";
+  //  String audioFile = "audio/" + dirIndexAsString + "/t_" + dirIndexAsString + "_" + fileIndexAsString + ".mp3";
   String audioFile = "audio/" + dirIndexAsString + "/" + fileIndexAsString + ".mp3";
-Serial.print("AUDIO ===>" );
-Serial.println(audioFile);
+  Serial.print("AUDIO ===>" );
+  Serial.println(audioFile);
   // Length (with one extra character for the null terminator)
   int str_len = audioFile.length() + 1;
   //  // Prepare the character array (the buffer)
@@ -316,6 +330,8 @@ Serial.println(audioFile);
 void PersistCurrentSelectedData(String dirIndexAsString, String fileIndexAsString) {
   File sessionTextFile = SD.open(SESSION_TEXT_FILE_PATH, O_CREAT | O_TRUNC | O_WRITE);
   if (sessionTextFile) {
+     Serial.print("STore ===>" );
+  Serial.println(dirIndexAsString + ":"+fileIndexAsString);
     sessionTextFile.println(dirIndexAsString + "," + fileIndexAsString);
     sessionTextFile.close();
   }
