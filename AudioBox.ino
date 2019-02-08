@@ -29,7 +29,7 @@
 
 Adafruit_VS1053_FilePlayer musicPlayer =  Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
 
-#define VOLUME_PIN A0 // The volume pin which is connected to the potentiometer.
+#define VOLUME_PIN A1 // The volume pin which is connected to the potentiometer.
 #define MAX_VOLUME 5 // Volume is the lower the louder.
 #define MIN_VOLUME 100 // Volume is the lower the louder.
 
@@ -49,6 +49,7 @@ int pinArray[] = {2, 5, 8, 9};
 int currentFileIndex = -1;
 byte currentDirIndex = BYTE_MAX;
 byte inputstate = READY_FOR_INPUT;
+bool startingUp = true;
 
 void setup() {
 
@@ -68,10 +69,11 @@ void setup() {
 
   SetupPins();
   BuildPlaylistIndex();
-  ContinuePlayingFromSession();
   musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);
-  musicPlayer.sineTest(0x44, 600);    // Make a tone to indicate all is fine and initilized
+  //  musicPlayer.sineTest(0x44, 600);    // Make a tone to indicate all is fine and initilized
+  musicPlayer.playFullFile("intro.mp3");
 }
+
 
 void SetupPins() {
 
@@ -103,7 +105,7 @@ void BuildPlaylistIndex() {
       if ( entry )
       {
         String file_name = entry.name();
-        Serial.println(file_name);
+        //        Serial.println(file_name);
         entry.close();
 
         const char tilde = '~';
@@ -125,15 +127,37 @@ void BuildPlaylistIndex() {
 
 
 void loop() {
+  if (startingUp) {
+    if (musicPlayer.readyForData()) {
+      Serial.println("Intro end");
+      startingUp = false;
+      ContinuePlayingFromSession();
+
+    }
+    return;
+  }
+
+  if (musicPlayer.readyForData()) {
+    // the current track has stopped playing so we continue
+    if (UpdateFileCursor(currentDirIndex, 1)) {
+      PlayNext();
+    } else {
+      musicPlayer.stopPlaying();
+    }
+    return;
+  }
+
+  UpdateVolume();
+
   byte buttonPressed = GetCurrentPressedButton();
 
   if (inputstate == HANDLING_INPUT && buttonPressed == BYTE_MAX) {
-    inputstate = READY_FOR_INPUT;
-  } else if (inputstate == READY_FOR_INPUT && buttonPressed != BYTE_MAX) {
-    inputstate = HANDLING_INPUT;
-    OnButtonPressed(buttonPressed);
+  inputstate = READY_FOR_INPUT;
+} else if (inputstate == READY_FOR_INPUT && buttonPressed != BYTE_MAX) {
+  inputstate = HANDLING_INPUT;
+  OnButtonPressed(buttonPressed);
   }
-  UpdateVolume();
+
 }
 
 byte GetCurrentPressedButton() {
@@ -279,14 +303,14 @@ void PlayNext() {
   audioFile.toCharArray(char_array, str_len);
 
   // pausing it first prevents audible glitchy sounds.
-    musicPlayer.pausePlaying(true);
+  musicPlayer.pausePlaying(true);
   // now stop it.
-    musicPlayer.stopPlaying();
+  musicPlayer.stopPlaying();
   // we can only write to the SD card when the audio is stopped.
   // SD is either read or write.
   PersistCurrentSelectedData(dirIndexAsString, fileIndexAsString);
   Serial.println(char_array);
-    musicPlayer.startPlayingFile(char_array);
+  musicPlayer.startPlayingFile(char_array);
 }
 
 void PersistCurrentSelectedData(String dirIndexAsString, String fileIndexAsString) {
@@ -302,15 +326,9 @@ void UpdateVolume() {
   int pinValue = analogRead(VOLUME_PIN);
 
   // set the range of the volume from 0 to 100
-  pinValue = map(pinValue, 0, 1023, MIN_VOLUME, MAX_VOLUME);
-
-  // recognize state (volume) changes in steps of two
-  int stepSize = 1;
-  if (pinValue < currentVolume - stepSize || pinValue > currentVolume + stepSize)
-  {
-    // remember the new volume state
-    currentVolume = pinValue;
-    musicPlayer.setVolume(currentVolume, currentVolume);
-  }
-  delay(2); // delay in between reads for stability
+  pinValue = map(pinValue, 0, 500, MAX_VOLUME, MIN_VOLUME + 5);
+  //  Serial.println(pinValue);
+  currentVolume = pinValue;
+  musicPlayer.setVolume(currentVolume, currentVolume);
+  //    delay(5); // delay in between reads for stability
 }
