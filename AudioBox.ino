@@ -30,6 +30,7 @@
 Adafruit_VS1053_FilePlayer musicPlayer =  Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
 
 #define VOLUME_PIN A1 // The volume pin which is connected to the potentiometer.
+#define PIN_REPLACE_FOR_11 A1 // The volume pin which is connected to the potentiometer.
 #define MAX_VOLUME 5 // Volume is the lower the louder.
 #define MIN_VOLUME 100 // Volume is the lower the louder.
 
@@ -77,7 +78,7 @@ void setup() {
 
 void SetupPins() {
 
-  pinMode(A0, INPUT_PULLUP);
+  pinMode(PIN_REPLACE_FOR_11, INPUT_PULLUP);
 
   for (uint8_t count = 0; count < pinArrayLength; count++) {
     pinMode(pinArray[count], INPUT_PULLUP);
@@ -177,7 +178,7 @@ byte GetCurrentPressedButton() {
     }
   }
 
-  if (digitalRead(A0) == LOW) {
+  if (digitalRead(PIN_REPLACE_FOR_11) == LOW) {
     return 11;
   }
 
