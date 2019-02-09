@@ -34,7 +34,7 @@ byte pinArrayLength = 4;
 int pinArray[] = {2, 5, 8, 9};
 int currentFileIndex = -1;
 byte currentDirIndex = BYTE_MAX;
-byte inputstate = READY_FOR_INPUT;
+byte inputState = READY_FOR_INPUT;
 bool startingUp = true;
 bool resetAtStart = false;
 
@@ -99,9 +99,7 @@ void BuildPlaylistIndex() {
       if ( entry )
       {
         String file_name = entry.name();
-        //        Serial.println(file_name);
         entry.close();
-
         const char tilde = '~';
 
         if ( file_name.indexOf(tilde) == -1 )
@@ -115,6 +113,12 @@ void BuildPlaylistIndex() {
         break;
       }
     }
+    Serial.print("[Cache files directory] ");
+    Serial.print(i);
+    Serial.print(" has ");
+    Serial.print(sumFiles);
+    Serial.print(" files ");
+    Serial.println();
     sumFilesPerFolderCache[i] = sumFiles;
   }
 }
@@ -138,24 +142,25 @@ void loop() {
     return;
   }
 
-  if (musicPlayer.readyForData()) {
-    // the current track has stopped playing so we continue
-    if (IncrementFileIterator(1)) {
-      PlayNext();
-    } else {
-      Reset(currentDirIndex, 0);
-      PlayNext();
-    }
-  }
-
   byte buttonPressed = GetCurrentPressedButton();
-  if (inputstate == HANDLING_INPUT && buttonPressed == BYTE_MAX) {
-    inputstate = READY_FOR_INPUT;
-  } else if (inputstate == READY_FOR_INPUT && buttonPressed != BYTE_MAX) {
-    inputstate = HANDLING_INPUT;
+  if (inputState == HANDLING_INPUT && buttonPressed == BYTE_MAX) {
+    inputState = READY_FOR_INPUT;
+  } else if (inputState == READY_FOR_INPUT && buttonPressed != BYTE_MAX) {
+    inputState = HANDLING_INPUT;
     OnButtonPressed(buttonPressed);
   }
 
+  if (inputState == READY_FOR_INPUT) {
+    if (musicPlayer.readyForData()) {
+      // the current track has stopped playing so we continue
+      if (IncrementFileIterator(1)) {
+        PlayNext();
+      } else {
+        Reset(currentDirIndex, 0);
+        PlayNext();
+      }
+    }
+  }
 }
 
 byte GetCurrentPressedButton() {
@@ -232,8 +237,8 @@ void Reset(int dirIndex, int fileIndex) {
   currentFileIndex = fileIndex;
 }
 
-bool IncrementFileIterator(int dir) {
-  int nextFileIndex = currentFileIndex + dir;
+bool IncrementFileIterator(int direction) {
+  int nextFileIndex = currentFileIndex + direction;
   Serial.print("[increment File iterator] : from " );
   Serial.print(currentFileIndex);
   Serial.print(" => " );
@@ -316,5 +321,8 @@ void UpdateVolume() {
   // set the range of the volume from 0 to 100
   // TODO: when the potentiometer is turned down, it never really goes to silent.
   currentVolume = map(pinValue, 0, 500, MAX_VOLUME, MIN_VOLUME + 5);
-  musicPlayer.setVolume(currentVolume, currentVolume);
+  //  musicPlayer.setVolume(currentVolume, currentVolume);
+
+  musicPlayer.setVolume(20  , 20);
+
 }
