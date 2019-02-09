@@ -113,19 +113,21 @@ void BuildPlaylistIndex() {
         break;
       }
     }
-    Serial.print("[Cache files directory] ");
-    Serial.print(i);
-    Serial.print(" has ");
-    Serial.print(sumFiles);
-    Serial.print(" files ");
-    Serial.println();
+//    Serial.print("[Cache files directory] ");
+//    Serial.print(i);
+//    Serial.print(" has ");
+//    Serial.print(sumFiles);
+//    Serial.print(" files ");
+//    Serial.println();
     sumFilesPerFolderCache[i] = sumFiles;
   }
 }
 
 void loop() {
   if (startingUp) {
+    Serial.println("waiting for tune");
     if (musicPlayer.readyForData()) {
+       Serial.println("Yes go");
       startingUp = false;
       ContinuePlayingFromSession();
     }
@@ -133,14 +135,14 @@ void loop() {
   }
 
   UpdateVolume();
-
-  if (startingUp && resetAtStart) {
-    resetAtStart = false;
-    startingUp = false;
-    Reset(0, 0);
-    PlayNext();
-    return;
-  }
+//
+//  if (startingUp && resetAtStart) {
+//    resetAtStart = false;
+//    startingUp = false;
+//    Reset(0, 0);
+//    PlayNext();
+//    return;
+//  }
 
   byte buttonPressed = GetCurrentPressedButton();
   if (inputState == HANDLING_INPUT && buttonPressed == BYTE_MAX) {
@@ -166,17 +168,13 @@ void loop() {
 
 byte GetCurrentPressedButton() {
   for (byte i = 0; i < 7; ++i) {
-    byte pinNumber = i + 1;
-    bool pressedDown = musicPlayer.GPIO_digitalRead(pinNumber) == HIGH;
-    if (pressedDown) {
+    if (musicPlayer.GPIO_digitalRead(i + 1) == HIGH) {
       return i;
     }
   }
 
   for (byte i = 0; i < pinArrayLength; ++i) {
-    byte pinNumber = pinArray[i];
-    bool pressedDown = digitalRead(pinNumber) == LOW;
-    if (pressedDown) {
+    if (digitalRead(pinArray[i]) == LOW) {
       return i + 7;
     }
   }
@@ -197,15 +195,15 @@ void OnButtonPressed(byte buttonPressedId) {
       // illegal button id.
       return;
     case NEXT_BUTTON_ID:
-      Serial.print("Play next from dir: ");
-      Serial.print(currentDirIndex);
-      Serial.println();
+//      Serial.print("Play next from dir: ");
+//      Serial.print(currentDirIndex);
+//      Serial.println();
       next = 1;
       break;
     case PREV_BUTTON_ID:
-      Serial.print("Play previous from dir: ");
-      Serial.print(currentDirIndex);
-      Serial.println();
+//      Serial.print("Play previous from dir: ");
+//      Serial.print(currentDirIndex);
+//      Serial.println();
       next = -1;
       break;
     default:
@@ -222,17 +220,17 @@ void OnButtonPressed(byte buttonPressedId) {
 }
 
 void Reset(int dirIndex, int fileIndex) {
-  Serial.print("Resetting dir from ");
-  Serial.print(currentDirIndex);
-  Serial.print(" to " );
-  Serial.print(dirIndex);
-  Serial.println();
-
-  Serial.print("Resetting currentFileIndex from ");
-  Serial.print(currentFileIndex);
-  Serial.print(" to " );
-  Serial.print(fileIndex);
-  Serial.println();
+//  Serial.print("Resetting dir from ");
+//  Serial.print(currentDirIndex);
+//  Serial.print(" to " );
+//  Serial.print(dirIndex);
+//  Serial.println();
+//
+//  Serial.print("Resetting currentFileIndex from ");
+//  Serial.print(currentFileIndex);
+//  Serial.print(" to " );
+//  Serial.print(fileIndex);
+//  Serial.println();
 
   currentDirIndex = dirIndex;
   currentFileIndex = fileIndex;
@@ -240,13 +238,13 @@ void Reset(int dirIndex, int fileIndex) {
 
 bool IncrementFileIterator(int direction) {
   int nextFileIndex = currentFileIndex + direction;
-  Serial.print("[increment File iterator] : from " );
-  Serial.print(currentFileIndex);
-  Serial.print(" => " );
-  Serial.println(nextFileIndex);
+//  Serial.print("[increment File iterator] : from " );
+//  Serial.print(currentFileIndex);
+//  Serial.print(" => " );
+//  Serial.println(nextFileIndex);
   int numberOfFiles = sumFilesPerFolderCache[currentDirIndex];
-  Serial.print("[NumberOfFiles for the current dir] ");
-  Serial.println(numberOfFiles);
+//  Serial.print("[NumberOfFiles for the current dir] ");
+//  Serial.println(numberOfFiles);
   if (nextFileIndex < 0 || nextFileIndex >= numberOfFiles)
   {
     return false;
@@ -256,7 +254,14 @@ bool IncrementFileIterator(int direction) {
 }
 
 void ContinuePlayingFromSession() {
-  Serial.print("[Continue to play from SD stored] " );
+
+
+
+  Reset(0, 0);
+
+
+  
+//  Serial.print("[Continue to play from SD stored] " );
   if (SD.exists(SESSION_TEXT_FILE_PATH)) {
     File textFile = SD.open(SESSION_TEXT_FILE_PATH, O_READ);
     String stored = ""; //TODO string.reserve maybe ?
@@ -264,24 +269,32 @@ void ContinuePlayingFromSession() {
       stored += (char)textFile.read();
     }
     textFile.close();
+
+    Serial.print("[Stored data] ");
+    Serial.println(stored.length());
+
+    
+
     for (int i = 0; i < stored.length(); i++) {
       if (stored.substring(i, i + 1) == ",") {
         int storedDirIndex = stored.substring(0, i).toInt();
         int storedFileIndex = stored.substring(i + 1).toInt();
-        if(storedDirIndex == BYTE_MAX || storedDirIndex < 0){
-          storedDirIndex = 0;
-          storedFileIndex = 0;
-        }
-        Reset(storedDirIndex, storedFileIndex);
-        if (IncrementFileIterator(0)) {
-          PlayNext();
+
+        if (storedDirIndex > 9 || storedDirIndex == BYTE_MAX || storedFileIndex < 0 || storedFileIndex > sumFilesPerFolderCache[storedFileIndex])
+        {
+          Serial.print("[Error in reading the stored data. Deleted the store textfile] " );
+          SD.remove(SESSION_TEXT_FILE_PATH);
+        } else {
+          Reset(storedDirIndex, storedFileIndex);
         }
         break;
       }
     }
-  } else {
-    Serial.println("Couldn't find the session text file");
   }
+
+      if (IncrementFileIterator(0)) {
+      PlayNext();
+    }
 }
 
 void PlayNext() {
@@ -289,8 +302,8 @@ void PlayNext() {
   String fileIndexAsString = String(currentFileIndex);
   String dirIndexAsString = String(currentDirIndex);
   String audioFile = "audio/" + dirIndexAsString + "/" + fileIndexAsString + ".mp3";
-  Serial.print("[Playing as next] " );
-  Serial.println(audioFile);
+//  Serial.print("[Playing as next] " );
+//  Serial.println(audioFile);
   // Length (with one extra character for the null terminator)
   int str_len = audioFile.length() + 1;
   //  // Prepare the character array (the buffer)
@@ -313,8 +326,8 @@ void PlayNext() {
 void PersistCurrentSelectedData(String dirIndexAsString, String fileIndexAsString) {
   File sessionTextFile = SD.open(SESSION_TEXT_FILE_PATH, O_CREAT | O_TRUNC | O_WRITE);
   if (sessionTextFile) {
-    Serial.print("[Storing to SD file] " );
-    Serial.println(dirIndexAsString + ":" + fileIndexAsString);
+//    Serial.print("[Storing to SD file] " );
+//    Serial.println(dirIndexAsString + ":" + fileIndexAsString);
     sessionTextFile.println(dirIndexAsString + "," + fileIndexAsString);
     sessionTextFile.close();
   }
