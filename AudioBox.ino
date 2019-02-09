@@ -152,6 +152,7 @@ void loop() {
 
   if (inputState == READY_FOR_INPUT) {
     if (musicPlayer.readyForData()) {
+      Serial.println("[Auto continue]");
       // the current track has stopped playing so we continue
       if (IncrementFileIterator(1)) {
         PlayNext();
@@ -243,7 +244,7 @@ bool IncrementFileIterator(int direction) {
   Serial.print(currentFileIndex);
   Serial.print(" => " );
   Serial.println(nextFileIndex);
-  int numberOfFiles = sumFilesPerFolderCache[currentFileIndex];
+  int numberOfFiles = sumFilesPerFolderCache[currentDirIndex];
   Serial.print("[NumberOfFiles for the current dir] ");
   Serial.println(numberOfFiles);
   if (nextFileIndex < 0 || nextFileIndex >= numberOfFiles)
@@ -255,6 +256,7 @@ bool IncrementFileIterator(int direction) {
 }
 
 void ContinuePlayingFromSession() {
+  Serial.print("[Continue to play from SD stored] " );
   if (SD.exists(SESSION_TEXT_FILE_PATH)) {
     File textFile = SD.open(SESSION_TEXT_FILE_PATH, O_READ);
     String stored = ""; //TODO string.reserve maybe ?
@@ -266,6 +268,10 @@ void ContinuePlayingFromSession() {
       if (stored.substring(i, i + 1) == ",") {
         int storedDirIndex = stored.substring(0, i).toInt();
         int storedFileIndex = stored.substring(i + 1).toInt();
+        if(storedDirIndex == BYTE_MAX || storedDirIndex < 0){
+          storedDirIndex = 0;
+          storedFileIndex = 0;
+        }
         Reset(storedDirIndex, storedFileIndex);
         if (IncrementFileIterator(0)) {
           PlayNext();
