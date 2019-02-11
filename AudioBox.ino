@@ -31,7 +31,7 @@ Adafruit_VS1053_FilePlayer musicPlayer =  Adafruit_VS1053_FilePlayer(SHIELD_RESE
 const char sessionTextfilePath[] = "store.txt";
 const char introSoundPath[] = "intro.mp3";
 const char audioBaseFolderPath[] = "audio/";
-const uint16_t pinArray[] = {2, 5, 8, 9};
+const byte pinArray[] = {2, 5, 8, 9};
 const byte pinArrayLength = 4;
 
 int currentVolume = MIN_VOLUME;
@@ -96,7 +96,7 @@ void BuildPlaylistIndex() {
 
   for (int i = 0; i < 10; i++) {
     String path =  audioBaseFolderPath + String(i);
-Serial.println(path);
+
     File audioDirectory = SD.open(path, O_READ);
     audioDirectory.rewindDirectory();
     int sumFiles = 0;
@@ -120,12 +120,12 @@ Serial.println(path);
         break;
       }
     }
-        Serial.print("[Cache files directory] ");
-        Serial.print(i);
-        Serial.print(" has ");
-        Serial.print(sumFiles);
-        Serial.print(" files ");
-        Serial.println();
+//        Serial.print("[Cache files directory] ");
+//        Serial.print(i);
+//        Serial.print(" has ");
+//        Serial.print(sumFiles);
+//        Serial.print(" files ");
+//        Serial.println();
     sumFilesPerFolderCache[i] = sumFiles;
   }
 }
