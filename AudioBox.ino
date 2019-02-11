@@ -38,6 +38,13 @@ byte inputState = READY_FOR_INPUT;
 bool startingUp = true;
 bool resetAtStart = false;
 
+/*
+ * //https://forums.adafruit.com/viewtopic.php?f=31&t=107788
+ *         // increase play speed
+                musicPlayer.sciWrite(VS1053_REG_WRAMADDR, para_playSpeed);
+                musicPlayer.sciWrite(VS1053_REG_WRAM, 3);
+                //Serial.println("increase speed");
+                */
 void setup() {
 
   Serial.begin(9600);
@@ -60,8 +67,8 @@ void setup() {
 
 
   resetAtStart = !digitalRead(PIN_REPLACE_FOR_11) && !digitalRead(9);
-  Serial.print("Boot value ");
-  Serial.println(resetAtStart );
+//  Serial.print("Boot value ");
+//  Serial.println(resetAtStart );
   if (!resetAtStart) {
     musicPlayer.playFullFile("intro.mp3");
   } else {
@@ -124,7 +131,7 @@ void BuildPlaylistIndex() {
 }
 
 void loop() {
-  if (startingUp) {
+  if (startingUp && !resetAtStart) {
     Serial.println("waiting for tune");
     if (musicPlayer.readyForData()) {
        Serial.println("Yes go");
@@ -135,14 +142,14 @@ void loop() {
   }
 
   UpdateVolume();
-//
-//  if (startingUp && resetAtStart) {
-//    resetAtStart = false;
-//    startingUp = false;
-//    Reset(0, 0);
-//    PlayNext();
-//    return;
-//  }
+
+  if (startingUp && resetAtStart) {
+    resetAtStart = false;
+    startingUp = false;
+    Reset(0, 0);
+    PlayNext();
+    return;
+  }
 
   byte buttonPressed = GetCurrentPressedButton();
   if (inputState == HANDLING_INPUT && buttonPressed == BYTE_MAX) {
@@ -191,9 +198,6 @@ void OnButtonPressed(byte buttonPressedId) {
   int next = 0;
 
   switch (buttonPressedId) {
-    case BYTE_MAX:
-      // illegal button id.
-      return;
     case NEXT_BUTTON_ID:
 //      Serial.print("Play next from dir: ");
 //      Serial.print(currentDirIndex);
@@ -260,6 +264,7 @@ void ContinuePlayingFromSession() {
   Reset(0, 0);
 
 
+  //https://forums.adafruit.com/viewtopic.php?f=31&t=107788
   
 //  Serial.print("[Continue to play from SD stored] " );
   if (SD.exists(SESSION_TEXT_FILE_PATH)) {
