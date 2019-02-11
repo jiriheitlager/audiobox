@@ -15,26 +15,32 @@
 
 #define VOLUME_PIN A1 // The volume pin which is connected to the potentiometer.
 #define PIN_REPLACE_FOR_11 A0 // The volume pin which is connected to the potentiometer.
-#define MAX_VOLUME 5 // Volume is the lower the louder.
-#define MIN_VOLUME 100 // Volume is the lower the louder.
 
 #define BYTE_MAX 255 // To check against an unset byte type.
-
-#define PREV_BUTTON_ID 10 // The number of the button for playing the previous.
-#define NEXT_BUTTON_ID 11 // The number of the button for playing the next.
 
 #define READY_FOR_INPUT  1 // No button is pressed and we can receive a button input.
 #define HANDLING_INPUT  2 // For making sure we only handle one button input.
 
 Adafruit_VS1053_FilePlayer musicPlayer =  Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
 
+// Volume bounds
+const PROGMEM char maxVolumeBound = 5; // Volume is the lower the louder.
+const PROGMEM char minVolumeBound = 100; // Volume is the lower the louder.
+
+// forward and backwards button ids //
+const PROGMEM char previousButtonId = 10; // The number of the button for playing the previous.
+const PROGMEM char nextButtonId = 11; // The number of the button for playing the next.
+
+// const strings
 const PROGMEM char sessionTextfilePath[] = "store.txt";
 const PROGMEM char introSoundPath[] = "intro.mp3";
 const PROGMEM char audioBaseFolderPath[] = "audio/";
+
+// arduino pins mapping for buttons with id 8,9,10,11 (12 is mapped to A0)
 const PROGMEM uint16_t pinArray[] = {2, 5, 8, 9};
 const PROGMEM byte pinArrayLength = 4;
 
-int currentVolume = MIN_VOLUME;
+int currentVolume = minVolumeBound;
 int currentFileIndex = -1;
 byte currentDirIndex = BYTE_MAX;
 byte inputState = READY_FOR_INPUT;
@@ -198,13 +204,13 @@ void OnButtonPressed(byte buttonPressedId) {
   int next = 0;
 
   switch (buttonPressedId) {
-    case NEXT_BUTTON_ID:
+    case nextButtonId:
       //      Serial.print("Play next from dir: ");
       //      Serial.print(currentDirIndex);
       //      Serial.println();
       next = 1;
       break;
-    case PREV_BUTTON_ID:
+    case previousButtonId:
       //      Serial.print("Play previous from dir: ");
       //      Serial.print(currentDirIndex);
       //      Serial.println();
@@ -337,7 +343,7 @@ void UpdateVolume() {
 
   // set the range of the volume from 0 to 100
   // TODO: when the potentiometer is turned down, it never really goes to silent.
-  currentVolume = map(pinValue, 0, 500, MAX_VOLUME, MIN_VOLUME + 5);
+  currentVolume = map(pinValue, 0, 500, maxVolumeBound, minVolumeBound + 5);
   //  musicPlayer.setVolume(currentVolume, currentVolume);
 
   musicPlayer.setVolume(20  , 20);
