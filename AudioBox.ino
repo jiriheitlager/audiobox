@@ -1,7 +1,6 @@
 #include <SPI.h>
 #include <Adafruit_VS1053.h>
 #include <SD.h>
-#include <avr/pgmspace.h>
 
 // These are the pins used for the music maker shield
 #define SHIELD_RESET  -1      // VS1053 reset pin (unused!)
@@ -18,16 +17,15 @@
 #define MAX_VOLUME 5 // Volume is the lower the louder.
 #define MIN_VOLUME 100 // Volume is the lower the louder.
 
-#define BYTE_MAX 255 // To check against an unset byte type.
-
-#define PREV_BUTTON_ID 10 // The number of the button for playing the previous.
-#define NEXT_BUTTON_ID 11 // The number of the button for playing the next.
 
 #define READY_FOR_INPUT  1 // No button is pressed and we can receive a button input.
 #define HANDLING_INPUT  2 // For making sure we only handle one button input.
 
 Adafruit_VS1053_FilePlayer musicPlayer =  Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
 
+const byte PREV_BUTTON_ID = 10; // The number of the button for playing the previous.
+const byte NEXT_BUTTON_ID = 11; // The number of the button for playing the next.
+const byte BYTE_MAX = 255; // To check against an unset byte type.
 const char sessionTextfilePath[] = "store.txt";
 const char introSoundPath[] = "intro.mp3";
 const char audioBaseFolderPath[] = "audio/";
