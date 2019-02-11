@@ -45,7 +45,7 @@ byte currentFileIndex = -1;
 byte currentDirIndex = BYTE_MAX;
 byte inputState = READY_FOR_INPUT;
 bool startingUp = true;
-bool resetAtStart = false;
+bool specialBootMode = false;
 
 /*
    //https://forums.adafruit.com/viewtopic.php?f=31&t=107788
@@ -70,12 +70,14 @@ void setup() {
 
   SetupPins();
   BuildPlaylistIndex();
+
+  // If DREQ is on an interrupt pin (on uno, #2 or #3) we can do background audio playing
   musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);
 
-  resetAtStart = !digitalRead(PIN_REPLACE_FOR_11) && !digitalRead(9);
+  specialBootMode = !digitalRead(PIN_REPLACE_FOR_11) && !digitalRead(9);
   //  Serial.print("Boot value ");
-  //  Serial.println(resetAtStart );
-  if (!resetAtStart) {
+  //  Serial.println(specialBootMode );
+  if (!specialBootMode) {
     musicPlayer.playFullFile(introSoundPath);
   } else {
     musicPlayer.sineTest(0x44, 600);
@@ -137,25 +139,25 @@ void BuildPlaylistIndex() {
 }
 
 void loop() {
-  if (startingUp && !resetAtStart) {
-    Serial.println(F("Intro sound playing"));
-    if (musicPlayer.readyForData()) {
-    Serial.println(F("Intro sound done"));
-      startingUp = false;
-      ContinuePlayingFromSession();
+
+  if(startingUp){
+    if(specialBootMode){
+      Serial.println(F("Special boot mode"));
+      specialBootMode = startingUp = false;
+      Reset(0, 0);
+      PlayNext();
+    }else{
+      Serial.println(F("Intro sound playing"));
+      // if (musicPlayer.readyForData()) {
+      if (musicPlayer.stopped()) {
+        Serial.println(F("Intro sound done"));
+        startingUp = false;
+        ContinuePlayingFromSession();
+      }
     }
-    return;
   }
 
   UpdateVolume();
-
-  if (startingUp && resetAtStart) {
-    resetAtStart = false;
-    startingUp = false;
-    Reset(0, 0);
-    PlayNext();
-    return;
-  }
 
   byte buttonPressed = GetCurrentPressedButton();
   if (inputState == HANDLING_INPUT && buttonPressed == BYTE_MAX) {
