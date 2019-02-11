@@ -15,37 +15,31 @@
 
 #define VOLUME_PIN A1 // The volume pin which is connected to the potentiometer.
 #define PIN_REPLACE_FOR_11 A0 // The volume pin which is connected to the potentiometer.
+#define MAX_VOLUME 5 // Volume is the lower the louder.
+#define MIN_VOLUME 100 // Volume is the lower the louder.
 
 #define BYTE_MAX 255 // To check against an unset byte type.
+
+#define PREV_BUTTON_ID 10 // The number of the button for playing the previous.
+#define NEXT_BUTTON_ID 11 // The number of the button for playing the next.
 
 #define READY_FOR_INPUT  1 // No button is pressed and we can receive a button input.
 #define HANDLING_INPUT  2 // For making sure we only handle one button input.
 
 Adafruit_VS1053_FilePlayer musicPlayer =  Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
 
-// Volume bounds
-const PROGMEM char maxVolumeBound = 5; // Volume is the lower the louder.
-const PROGMEM char minVolumeBound = 100; // Volume is the lower the louder.
+const char sessionTextfilePath[] = "store.txt";
+const char introSoundPath[] = "intro.mp3";
+const char audioBaseFolderPath[] = "audio/";
+const uint16_t pinArray[] = {2, 5, 8, 9};
+const byte pinArrayLength = 4;
 
-// forward and backwards button ids //
-const PROGMEM char previousButtonId = 10; // The number of the button for playing the previous.
-const PROGMEM char nextButtonId = 11; // The number of the button for playing the next.
-
-// const strings
-const PROGMEM char sessionTextfilePath[] = "store.txt";
-const PROGMEM char introSoundPath[] = "intro.mp3";
-const PROGMEM char audioBaseFolderPath[] = "audio/";
-
-// arduino pins mapping for buttons with id 8,9,10,11 (12 is mapped to A0)
-const PROGMEM byte pinArray[] = {2, 5, 8, 9};
-const PROGMEM byte pinArrayLength = 4;
-
-byte currentVolume = minVolumeBound;
-byte currentFileIndex = -1;
+int currentVolume = MIN_VOLUME;
+int currentFileIndex = -1;
 byte currentDirIndex = BYTE_MAX;
 byte inputState = READY_FOR_INPUT;
 bool startingUp = true;
-bool specialBootMode = false;
+bool resetAtStart = false;
 
 /*
    //https://forums.adafruit.com/viewtopic.php?f=31&t=107788
@@ -70,14 +64,12 @@ void setup() {
 
   SetupPins();
   BuildPlaylistIndex();
-
-  // If DREQ is on an interrupt pin (on uno, #2 or #3) we can do background audio playing
   musicPlayer.useInterrupt(VS1053_FILEPLAYER_PIN_INT);
 
-  specialBootMode = !digitalRead(PIN_REPLACE_FOR_11) && !digitalRead(9);
+  resetAtStart = !digitalRead(PIN_REPLACE_FOR_11) && !digitalRead(9);
   //  Serial.print("Boot value ");
-  //  Serial.println(specialBootMode );
-  if (!specialBootMode) {
+  //  Serial.println(resetAtStart );
+  if (!resetAtStart) {
     musicPlayer.playFullFile(introSoundPath);
   } else {
     musicPlayer.sineTest(0x44, 600);
@@ -88,26 +80,26 @@ void SetupPins() {
 
   pinMode(PIN_REPLACE_FOR_11, INPUT_PULLUP);
 
-  for (byte count = 0; count < pinArrayLength; count++) {
+  for (uint8_t count = 0; count < pinArrayLength; count++) {
     pinMode(pinArray[count], INPUT_PULLUP);
   }
 
-  for (byte i = 0; i < 7; i++) {
+  for (uint8_t i = 0; i < 7; i++) {
     musicPlayer.GPIO_digitalWrite(i, HIGH);
   }
 }
 
 // I could consider storing this data in a file on the SD, so we dont need to build the index at startup.
 // It would be faster to load the file and parse it. It is also feasible because we create the data on the SD ourselves.
-byte sumFilesPerFolderCache[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+int sumFilesPerFolderCache[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 void BuildPlaylistIndex() {
 
-  for (byte i = 0; i < 10; i++) {
+  for (int i = 0; i < 10; i++) {
     String path =  audioBaseFolderPath + String(i);
-
+Serial.println(path);
     File audioDirectory = SD.open(path, O_READ);
     audioDirectory.rewindDirectory();
-    byte sumFiles = 0;
+    int sumFiles = 0;
     while ( true )
     {
       File entry =  audioDirectory.openNextFile();
@@ -128,36 +120,36 @@ void BuildPlaylistIndex() {
         break;
       }
     }
-    //    Serial.print("[Cache files directory] ");
-    //    Serial.print(i);
-    //    Serial.print(" has ");
-    //    Serial.print(sumFiles);
-    //    Serial.print(" files ");
-    //    Serial.println();
+        Serial.print("[Cache files directory] ");
+        Serial.print(i);
+        Serial.print(" has ");
+        Serial.print(sumFiles);
+        Serial.print(" files ");
+        Serial.println();
     sumFilesPerFolderCache[i] = sumFiles;
   }
 }
 
 void loop() {
-
-  if(startingUp){
-    if(specialBootMode){
-      Serial.println(F("Special boot mode"));
-      specialBootMode = startingUp = false;
-      Reset(0, 0);
-      PlayNext();
-    }else{
-      Serial.println(F("Intro sound playing"));
-      // if (musicPlayer.readyForData()) {
-      if (musicPlayer.stopped()) {
-        Serial.println(F("Intro sound done"));
-        startingUp = false;
-        ContinuePlayingFromSession();
-      }
+  if (startingUp && !resetAtStart) {
+    Serial.println(F("Intro sound playing"));
+    if (musicPlayer.readyForData()) {
+    Serial.println(F("Intro sound done"));
+      startingUp = false;
+      ContinuePlayingFromSession();
     }
+    return;
   }
 
   UpdateVolume();
+
+  if (startingUp && resetAtStart) {
+    resetAtStart = false;
+    startingUp = false;
+    Reset(0, 0);
+    PlayNext();
+    return;
+  }
 
   byte buttonPressed = GetCurrentPressedButton();
   if (inputState == HANDLING_INPUT && buttonPressed == BYTE_MAX) {
@@ -203,16 +195,16 @@ byte GetCurrentPressedButton() {
 
 void OnButtonPressed(byte buttonPressedId) {
 
-  byte next = 0;
+  int next = 0;
 
   switch (buttonPressedId) {
-    case nextButtonId:
+    case NEXT_BUTTON_ID:
       //      Serial.print("Play next from dir: ");
       //      Serial.print(currentDirIndex);
       //      Serial.println();
       next = 1;
       break;
-    case previousButtonId:
+    case PREV_BUTTON_ID:
       //      Serial.print("Play previous from dir: ");
       //      Serial.print(currentDirIndex);
       //      Serial.println();
@@ -231,7 +223,7 @@ void OnButtonPressed(byte buttonPressedId) {
   }
 }
 
-void Reset(byte dirIndex, byte fileIndex) {
+void Reset(int dirIndex, int fileIndex) {
   //  Serial.print("Resetting dir from ");
   //  Serial.print(currentDirIndex);
   //  Serial.print(" to " );
@@ -248,13 +240,13 @@ void Reset(byte dirIndex, byte fileIndex) {
   currentFileIndex = fileIndex;
 }
 
-bool IncrementFileIterator(byte direction) {
-  byte nextFileIndex = currentFileIndex + direction;
+bool IncrementFileIterator(int direction) {
+  int nextFileIndex = currentFileIndex + direction;
   //  Serial.print("[increment File iterator] : from " );
   //  Serial.print(currentFileIndex);
   //  Serial.print(" => " );
   //  Serial.println(nextFileIndex);
-  byte numberOfFiles = sumFilesPerFolderCache[currentDirIndex];
+  int numberOfFiles = sumFilesPerFolderCache[currentDirIndex];
   //  Serial.print("[NumberOfFiles for the current dir] ");
   //  Serial.println(numberOfFiles);
   if (nextFileIndex < 0 || nextFileIndex >= numberOfFiles)
@@ -281,10 +273,10 @@ void ContinuePlayingFromSession() {
     Serial.print(F("[Stored data] "));
     Serial.println(stored.length());
 
-    for (byte i = 0; i < stored.length(); i++) {
+    for (int i = 0; i < stored.length(); i++) {
       if (stored.substring(i, i + 1) == ",") {
-        byte storedDirIndex = stored.substring(0, i).toInt();
-        byte storedFileIndex = stored.substring(i + 1).toInt();
+        int storedDirIndex = stored.substring(0, i).toInt();
+        int storedFileIndex = stored.substring(i + 1).toInt();
 
         if (storedDirIndex > 9 || storedDirIndex == BYTE_MAX || storedFileIndex < 0 || storedFileIndex > sumFilesPerFolderCache[storedFileIndex])
         {
@@ -307,7 +299,7 @@ void PlayNext() {
   // TODO: see if string.reserver can be used to manipulate the path string
   String fileIndexAsString = String(currentFileIndex);
   String dirIndexAsString = String(currentDirIndex);
-  String audioFile = audioBaseFolderPath + dirIndexAsString + "/" + fileIndexAsString + ".mp3";
+  String audioFile = "audio/" + dirIndexAsString + "/" + fileIndexAsString + ".mp3";
   //  Serial.print("[Playing as next] " );
   //  Serial.println(audioFile);
   // Length (with one extra character for the null terminator)
@@ -341,11 +333,11 @@ void PersistCurrentSelectedData(String dirIndexAsString, String fileIndexAsStrin
 
 void UpdateVolume() {
   // read the state of the volume potentiometer
-  byte pinValue = analogRead(VOLUME_PIN);
+  int pinValue = analogRead(VOLUME_PIN);
 
   // set the range of the volume from 0 to 100
   // TODO: when the potentiometer is turned down, it never really goes to silent.
-  currentVolume = map(pinValue, 0, 500, maxVolumeBound, minVolumeBound + 5);
+  currentVolume = map(pinValue, 0, 500, MAX_VOLUME, MIN_VOLUME + 5);
   //  musicPlayer.setVolume(currentVolume, currentVolume);
 
   musicPlayer.setVolume(20  , 20);
