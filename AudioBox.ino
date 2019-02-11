@@ -37,11 +37,11 @@ const PROGMEM char introSoundPath[] = "intro.mp3";
 const PROGMEM char audioBaseFolderPath[] = "audio/";
 
 // arduino pins mapping for buttons with id 8,9,10,11 (12 is mapped to A0)
-const PROGMEM uint16_t pinArray[] = {2, 5, 8, 9};
+const PROGMEM byte pinArray[] = {2, 5, 8, 9};
 const PROGMEM byte pinArrayLength = 4;
 
-int currentVolume = minVolumeBound;
-int currentFileIndex = -1;
+byte currentVolume = minVolumeBound;
+byte currentFileIndex = -1;
 byte currentDirIndex = BYTE_MAX;
 byte inputState = READY_FOR_INPUT;
 bool startingUp = true;
@@ -86,26 +86,26 @@ void SetupPins() {
 
   pinMode(PIN_REPLACE_FOR_11, INPUT_PULLUP);
 
-  for (uint8_t count = 0; count < pinArrayLength; count++) {
+  for (byte count = 0; count < pinArrayLength; count++) {
     pinMode(pinArray[count], INPUT_PULLUP);
   }
 
-  for (uint8_t i = 0; i < 7; i++) {
+  for (byte i = 0; i < 7; i++) {
     musicPlayer.GPIO_digitalWrite(i, HIGH);
   }
 }
 
 // I could consider storing this data in a file on the SD, so we dont need to build the index at startup.
 // It would be faster to load the file and parse it. It is also feasible because we create the data on the SD ourselves.
-int sumFilesPerFolderCache[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+byte sumFilesPerFolderCache[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 void BuildPlaylistIndex() {
 
-  for (int i = 0; i < 10; i++) {
+  for (byte i = 0; i < 10; i++) {
     String path =  audioBaseFolderPath + String(i);
 
     File audioDirectory = SD.open(path, O_READ);
     audioDirectory.rewindDirectory();
-    int sumFiles = 0;
+    byte sumFiles = 0;
     while ( true )
     {
       File entry =  audioDirectory.openNextFile();
@@ -201,7 +201,7 @@ byte GetCurrentPressedButton() {
 
 void OnButtonPressed(byte buttonPressedId) {
 
-  int next = 0;
+  byte next = 0;
 
   switch (buttonPressedId) {
     case nextButtonId:
@@ -229,7 +229,7 @@ void OnButtonPressed(byte buttonPressedId) {
   }
 }
 
-void Reset(int dirIndex, int fileIndex) {
+void Reset(byte dirIndex, byte fileIndex) {
   //  Serial.print("Resetting dir from ");
   //  Serial.print(currentDirIndex);
   //  Serial.print(" to " );
@@ -246,13 +246,13 @@ void Reset(int dirIndex, int fileIndex) {
   currentFileIndex = fileIndex;
 }
 
-bool IncrementFileIterator(int direction) {
-  int nextFileIndex = currentFileIndex + direction;
+bool IncrementFileIterator(byte direction) {
+  byte nextFileIndex = currentFileIndex + direction;
   //  Serial.print("[increment File iterator] : from " );
   //  Serial.print(currentFileIndex);
   //  Serial.print(" => " );
   //  Serial.println(nextFileIndex);
-  int numberOfFiles = sumFilesPerFolderCache[currentDirIndex];
+  byte numberOfFiles = sumFilesPerFolderCache[currentDirIndex];
   //  Serial.print("[NumberOfFiles for the current dir] ");
   //  Serial.println(numberOfFiles);
   if (nextFileIndex < 0 || nextFileIndex >= numberOfFiles)
@@ -279,10 +279,10 @@ void ContinuePlayingFromSession() {
     Serial.print(F("[Stored data] "));
     Serial.println(stored.length());
 
-    for (int i = 0; i < stored.length(); i++) {
+    for (byte i = 0; i < stored.length(); i++) {
       if (stored.substring(i, i + 1) == ",") {
-        int storedDirIndex = stored.substring(0, i).toInt();
-        int storedFileIndex = stored.substring(i + 1).toInt();
+        byte storedDirIndex = stored.substring(0, i).toInt();
+        byte storedFileIndex = stored.substring(i + 1).toInt();
 
         if (storedDirIndex > 9 || storedDirIndex == BYTE_MAX || storedFileIndex < 0 || storedFileIndex > sumFilesPerFolderCache[storedFileIndex])
         {
@@ -339,7 +339,7 @@ void PersistCurrentSelectedData(String dirIndexAsString, String fileIndexAsStrin
 
 void UpdateVolume() {
   // read the state of the volume potentiometer
-  int pinValue = analogRead(VOLUME_PIN);
+  byte pinValue = analogRead(VOLUME_PIN);
 
   // set the range of the volume from 0 to 100
   // TODO: when the potentiometer is turned down, it never really goes to silent.
