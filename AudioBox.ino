@@ -305,7 +305,7 @@ void PlayNext() {
   // TODO: see if string.reserver can be used to manipulate the path string
   String fileIndexAsString = String(currentFileIndex);
   String dirIndexAsString = String(currentDirIndex);
-  String audioFile = "audio/" + dirIndexAsString + "/" + fileIndexAsString + ".mp3";
+  String audioFile = audioBaseFolderPath + dirIndexAsString + "/" + fileIndexAsString + ".mp3";
   //  Serial.print("[Playing as next] " );
   //  Serial.println(audioFile);
   // Length (with one extra character for the null terminator)
