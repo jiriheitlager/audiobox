@@ -1,36 +1,44 @@
- #!/usr/bin/env ruby
+#!/usr/bin/env ruby
 require 'fileutils'
-require 'Date'
+require 'date'
+require 'json'
 
 puts "Runing conversion script"
 
 glob = Dir.glob('data/*')
 sumFolder = glob.length
-
-
-# FileUtils.rm_rf("output")
-
+date = DateTime.now.strftime('%s')
+manifest = {}
+folderCount = 0
+outputFolder = "output-#{date}"
 
 if glob.length <= 10
-  folderCount = 0
-  glob.each do |folder|
-    # do something with the file here
+ glob.sort.each do |folder|
+   # do something with the file here
+   if(File.directory?(folder))
+     foldername = File.basename(folder)
+     manifest[foldername] = {}
+     # puts foldername
+     path = "#{outputFolder}/#{folderCount}"
+     folderCount +=1
+     FileUtils.mkdir_p path
+     i = 0
+     Dir.glob("#{folder}/**/*.mp3").sort.each do |filename|
+       basename = File.basename(filename)
+       outName = "#{i}.mp3"
+       manifest[foldername][filename] = "#{path}/#{outName}"
+        FileUtils.cp(filename, "#{path}/#{outName}")
+       # puts "--------> #{path}/#{outName}"
+       i+=1
+     end
 
-    date = DateTime.now.strftime('%s')
+   end
+ end
+end
 
-    if(File.directory?(folder))
-      foldername = File.basename(folder)
-      # puts foldername
-      path = "output-#{date}/#{folderCount}"
-      folderCount +=1
-      FileUtils.mkdir_p path
-      i = 0
-      Dir.glob("#{folder}/**/*.mp3") do |filename|
-        basename = File.basename(filename)
-        FileUtils.cp(filename, "#{path}/#{i}.mp3")
-        i+=1
-      end
+# puts
+puts
 
-    end
-  end
+File.open("#{outputFolder}/manifest.json","w") do |f|
+  f.write(manifest.to_json)
 end
