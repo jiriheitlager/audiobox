@@ -27,11 +27,14 @@ const byte PREV_BUTTON_ID = 10; // The number of the button for playing the prev
 const byte NEXT_BUTTON_ID = 11; // The number of the button for playing the next.
 const byte BYTE_MAX = 255; // To check against an unset byte type.
 const char sessionTextfilePath[] = "store.txt";
+
 const char introSoundPath[] = "intro.mp3";
 const char audioBaseFolderPath[] = "audio/";
+const char filecountTextfilePath[] = "audio/nfo.txt";
 const byte pinArray[] = {2, 5, 8, 9};
 const byte pinArrayLength = 4;
 
+int sumFilesPerFolderCache[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int currentVolume = MIN_VOLUME;
 int currentFileIndex = -1;
 byte currentDirIndex = BYTE_MAX;
@@ -89,42 +92,34 @@ void SetupPins() {
 
 // I could consider storing this data in a file on the SD, so we dont need to build the index at startup.
 // It would be faster to load the file and parse it. It is also feasible because we create the data on the SD ourselves.
-int sumFilesPerFolderCache[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
 void BuildPlaylistIndex() {
-
-  for (int i = 0; i < 10; i++) {
-    String path =  audioBaseFolderPath + String(i);
-
-    File audioDirectory = SD.open(path, O_READ);
-    audioDirectory.rewindDirectory();
-    int sumFiles = 0;
-    while ( true )
-    {
-      File entry =  audioDirectory.openNextFile();
-      if ( entry )
-      {
-        String file_name = entry.name();
-        entry.close();
-        const char tilde = '~';
-
-        if ( file_name.indexOf(tilde) == -1 )
-        {
-          ++sumFiles;
+  Serial.println(F("BuildPlaylistIndex"));
+  if (SD.exists(filecountTextfilePath)) {
+    Serial.println(F("Found the nfo.txt file"));
+    File textFile = SD.open(filecountTextfilePath, O_READ);
+    while (textFile.available()) {
+      String readString = textFile.readStringUntil('\r');
+      char c[30];
+      readString.toCharArray(c, sizeof(c));
+      int ipos = 0;
+      // Get the first token from the string
+      char *tok = strtok(c, ",");
+      // Keep going until we run out of tokens
+      while (tok) {
+        // Don't overflow your target array
+        if (ipos < 10) {
+          int value = atoi(tok);
+          Serial.println(value);
+          sumFilesPerFolderCache[ipos++] = value;
         }
-      } else {
-        // not sure if this call is need, we should remove it and test it.
-        audioDirectory.rewindDirectory();
-        audioDirectory.close();
-        break;
+        // Get the next token from the string - note the use of NULL
+        // instead of the string in this case - that tells it to carry
+        // on from where it left off.
+        tok = strtok(NULL, ",");
       }
+      textFile.close();
     }
-//        Serial.print("[Cache files directory] ");
-//        Serial.print(i);
-//        Serial.print(" has ");
-//        Serial.print(sumFiles);
-//        Serial.print(" files ");
-//        Serial.println();
-    sumFilesPerFolderCache[i] = sumFiles;
   }
 }
 
@@ -132,7 +127,7 @@ void loop() {
   if (startingUp && !resetAtStart) {
     Serial.println(F("Intro sound playing"));
     if (musicPlayer.readyForData()) {
-    Serial.println(F("Intro sound done"));
+      Serial.println(F("Intro sound done"));
       startingUp = false;
       ContinuePlayingFromSession();
     }
