@@ -327,6 +327,6 @@ void UpdateVolume() {
 
   // set the range of the volume from 0 to 100
   // TODO: when the potentiometer is turned down, it never really goes to silent.
-  currentVolume = 20;//map(pinValue, 0, 500, MAX_VOLUME, MIN_VOLUME + 5);
+  currentVolume = map(pinValue, 0, 688, MIN_VOLUME, MAX_VOLUME);
   musicPlayer.setVolume(currentVolume, currentVolume);
 }
