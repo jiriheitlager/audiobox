@@ -81,13 +81,10 @@ void SetupPins() {
   }
 }
 
-// I could consider storing this data in a file on the SD, so we dont need to build the index at startup.
-// It would be faster to load the file and parse it. It is also feasible because we create the data on the SD ourselves.
-
 void BuildPlaylistIndex() {
-  Serial.println(F("BuildPlaylistIndex"));
+//  Serial.println(F("BuildPlaylistIndex"));
   if (SD.exists(filecountTextfilePath)) {
-    Serial.println(F("Found the nfo.txt file"));
+//    Serial.println(F("Found the nfo.txt file"));
     File textFile = SD.open(filecountTextfilePath, O_READ);
     while (textFile.available()) {
       String readString = textFile.readStringUntil('\r');
