@@ -155,6 +155,7 @@ void loop() {
       }
     }
   }
+  delay(1);
 }
 
 byte GetCurrentPressedButton() {
