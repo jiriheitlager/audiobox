@@ -31,7 +31,7 @@ const char sessionTextfilePath[] = "store.txt";
 const char introSoundPath[] = "intro.mp3";
 const char audioBaseFolderPath[] = "audio/";
 const char filecountTextfilePath[] = "audio/nfo.txt";
-const byte pinArray[] = {2, 5, 8, 9};
+const byte pinArray[4] = {2, 5, 8, 9};
 const byte pinArrayLength = 4;
 
 int sumFilesPerFolderCache[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
