@@ -17,7 +17,6 @@
 #define MAX_VOLUME 5 // Volume is the lower the louder.
 #define MIN_VOLUME 100 // Volume is the lower the louder.
 
-
 #define READY_FOR_INPUT  1 // No button is pressed and we can receive a button input.
 #define HANDLING_INPUT  2 // For making sure we only handle one button input.
 
@@ -27,7 +26,6 @@ const byte PREV_BUTTON_ID = 10; // The number of the button for playing the prev
 const byte NEXT_BUTTON_ID = 11; // The number of the button for playing the next.
 const byte BYTE_MAX = 255; // To check against an unset byte type.
 const char sessionTextfilePath[] = "store.txt";
-
 const char introSoundPath[] = "intro.mp3";
 const char audioBaseFolderPath[] = "audio/";
 const char filecountTextfilePath[] = "audio/nfo.txt";
@@ -42,13 +40,6 @@ byte inputState = READY_FOR_INPUT;
 bool startingUp = true;
 bool resetAtStart = false;
 
-/*
-   //https://forums.adafruit.com/viewtopic.php?f=31&t=107788
-           // increase play speed
-                musicPlayer.sciWrite(VS1053_REG_WRAMADDR, para_playSpeed);
-                musicPlayer.sciWrite(VS1053_REG_WRAM, 3);
-                //Serial.println("increase speed");
-*/
 void setup() {
 
   Serial.begin(9600);
@@ -215,7 +206,13 @@ void OnButtonPressed(byte buttonPressedId) {
     PlayNext();
   }
 }
-
+/*
+// https://forums.adafruit.com/viewtopic.php?f=31&t=107788
+void SetPlaySpeed(int playSpeed){
+    musicPlayer.sciWrite(VS1053_REG_WRAMADDR, 0x1E04);
+    musicPlayer.sciWrite(VS1053_REG_WRAM, playSpeed);
+}
+*/
 void Reset(int dirIndex, int fileIndex) {
   //  Serial.print("Resetting dir from ");
   //  Serial.print(currentDirIndex);
