@@ -2,6 +2,7 @@
 #include <Adafruit_VS1053.h>
 #include <SD.h>
 
+
 // These are the pins used for the music maker shield
 #define SHIELD_RESET  -1      // VS1053 reset pin (unused!)
 #define SHIELD_CS     7      // VS1053 chip select pin (output)
@@ -14,7 +15,7 @@
 
 #define VOLUME_PIN A1 // The volume pin which is connected to the potentiometer.
 #define PIN_REPLACE_FOR_11 A0 // The volume pin which is connected to the potentiometer.
-#define MAX_VOLUME 5 // Volume is the lower the louder.
+#define MAX_VOLUME 0 // Volume is the lower the louder.
 #define MIN_VOLUME 100 // Volume is the lower the louder.
 
 #define READY_FOR_INPUT  1 // No button is pressed and we can receive a button input.
@@ -42,15 +43,15 @@ bool resetAtStart = false;
 
 void setup() {
 
-  Serial.begin(9600);
+//  Serial.begin(9600);
 
   if (! musicPlayer.begin()) { // initialise the music player
-    Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
+//    Serial.println(F("Couldn't find VS1053, do you have the right pins defined?"));
     while (1);
   }
 
   if (!SD.begin(CARDCS)) {
-    Serial.println(F("SD failed, or not present"));
+//    Serial.println(F("SD failed, or not present"));
     while (1);  // don't do anything more
   }
 
@@ -114,9 +115,9 @@ void BuildPlaylistIndex() {
 
 void loop() {
   if (startingUp && !resetAtStart) {
-    Serial.println(F("Intro sound playing"));
+//    Serial.println(F("Intro sound playing"));
     if (musicPlayer.readyForData()) {
-      Serial.println(F("Intro sound done"));
+//      Serial.println(F("Intro sound done"));
       startingUp = false;
       ContinuePlayingFromSession();
     }
@@ -143,7 +144,7 @@ void loop() {
 
   if (inputState == READY_FOR_INPUT) {
     if (musicPlayer.readyForData()) {
-      Serial.println(F("[Auto continue]"));
+      // Serial.println(F("[Auto continue]"));
       // the current track has stopped playing so we continue
       if (IncrementFileIterator(1)) {
         PlayNext();
@@ -259,8 +260,8 @@ void ContinuePlayingFromSession() {
     }
     textFile.close();
 
-    Serial.print(F("[Stored data] "));
-    Serial.println(stored.length());
+    // Serial.print(F("[Stored data] "));
+    // Serial.println(stored.length());
 
     for (int i = 0; i < stored.length(); i++) {
       if (stored.substring(i, i + 1) == ",") {
@@ -269,7 +270,7 @@ void ContinuePlayingFromSession() {
 
         if (storedDirIndex > 9 || storedDirIndex == BYTE_MAX || storedFileIndex < 0 || storedFileIndex > sumFilesPerFolderCache[storedFileIndex])
         {
-          Serial.print(F("[Error in reading the stored data. Deleted the store textfile] "));
+          // Serial.print(F("[Error in reading the stored data. Deleted the store textfile] "));
           SD.remove(sessionTextfilePath);
         } else {
           Reset(storedDirIndex, storedFileIndex);
@@ -306,7 +307,7 @@ void PlayNext() {
   // we can only write to the SD card when the audio is stopped.
   // SD is either read or write.
   PersistCurrentSelectedData(dirIndexAsString, fileIndexAsString);
-  Serial.println(char_array);
+  // Serial.println(char_array);
   musicPlayer.startPlayingFile(char_array);
 }
 
