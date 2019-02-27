@@ -62,6 +62,7 @@ void setup() {
   //  Serial.print("Boot value ");
   //  Serial.println(resetAtStart );
   if (!resetAtStart) {
+    musicPlayer.setVolume(MAX_VOLUME, MAX_VOLUME);
     musicPlayer.playFullFile(introSoundPath);
   } else {
     musicPlayer.sineTest(0x44, 600);
