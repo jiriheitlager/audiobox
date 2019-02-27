@@ -5,7 +5,7 @@ require 'json'
 
 puts "Runing conversion script"
 
-glob = Dir.glob('data/*')
+glob = Dir.glob('master/*')
 date = DateTime.now.strftime('%s')
 manifest = {}
 files_count_array = Array.new
