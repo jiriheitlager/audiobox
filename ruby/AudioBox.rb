@@ -5,7 +5,7 @@ require 'json'
 
 puts "Runing conversion script"
 
-glob = Dir.glob('master/*')
+glob = Dir.glob('master/*').reject{ |f| f.start_with?("master/_") }
 date = DateTime.now.strftime('%s')
 manifest = {}
 files_count_array = Array.new
@@ -22,6 +22,7 @@ if glob.length <= 10
 
     unless File.file?(file_in_audio_folder)
       file_parent_folder_basename = File.basename(file_in_audio_folder)
+
       manifest[folder_counter] = {}
       path = "#{outputFolder}/#{folder_counter}"
 
@@ -38,12 +39,22 @@ if glob.length <= 10
       total_size+=File.size(filename)
       files_counter +=1
     end
-
     files_counter = 0
     folder_counter +=1
     end
   end
 end
+
+MEGABYTE = 1024.0 * 1024.0
+def bytesToMeg bytes
+  bytes /  MEGABYTE
+end
+
+size_in_mb = bytesToMeg(total_size).to_s + ' MB'
+puts "total size #{size_in_mb} MB"
+manifest["total_size"] = size_in_mb
+
+puts JSON.pretty_generate(manifest)
 
 File.open("#{outputFolder}/nfo.txt","w") do |f|
   f.write(files_count_array.join(","))
@@ -52,12 +63,3 @@ end
 File.open("#{outputFolder}/manifest.json","w") do |f|
   f.write(manifest.to_json)
 end
-
-MEGABYTE = 1024.0 * 1024.0
-def bytesToMeg bytes
-  bytes /  MEGABYTE
-end
-
-# puts total_size.to_s + ' bytes'  # displays 62651176 bytes
-puts bytesToMeg(total_size).to_s + ' MB'  # displays 59.7488174438477 MB
-puts JSON.pretty_generate(manifest)
