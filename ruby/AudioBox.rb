@@ -5,7 +5,8 @@ require 'json'
 
 puts "Runing conversion script"
 
-glob = Dir.glob('master/*').reject{ |f| f.start_with?("master/_") }
+master_folder = "master"
+glob = Dir.glob("#{master_folder}/*").reject{ |f| f.start_with?("#{master_folder}/_") }
 date = DateTime.now.strftime('%s')
 manifest = {}
 files_count_array = Array.new
@@ -32,15 +33,16 @@ if glob.length <= 10
       files_count_array[folder_counter] = files.length
 
       files.each do |filename|
-      basename = File.basename(filename)
-      outName = "#{files_counter}.mp3"
-      manifest[folder_counter][filename] = "#{path}/#{outName}"
-      FileUtils.cp(filename, "#{path}/#{outName}")
-      total_size+=File.size(filename)
-      files_counter +=1
-    end
+        outName = "#{files_counter}.mp3"
+        manifest[folder_counter][filename.gsub("#{master_folder}/", "")] = "#{path}/#{outName}"
+        FileUtils.cp(filename, "#{path}/#{outName}")
+        total_size+=File.size(filename)
+        files_counter +=1
+      end
+
     files_counter = 0
     folder_counter +=1
+
     end
   end
 end
