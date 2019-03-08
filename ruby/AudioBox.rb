@@ -3,7 +3,7 @@ require 'fileutils'
 require 'date'
 require 'json'
 
-puts "Runing conversion script"
+puts "Runing conversion script files or folders starting with '_' will be skipped."
 
 master_folder = "master"
 glob = Dir.glob("#{master_folder}/*").reject{ |f| f.start_with?("#{master_folder}/_") }
@@ -29,7 +29,7 @@ if glob.length <= 10
 
       FileUtils.mkdir_p path
 
-      files = Dir.glob("#{file_in_audio_folder}/**/*.mp3").sort
+      files = Dir.glob("#{file_in_audio_folder}/**/*.mp3").reject{ |f| f.start_with?("_") }.sort
       files_count_array[folder_counter] = files.length
 
       files.each do |filename|
