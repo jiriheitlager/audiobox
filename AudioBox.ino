@@ -144,6 +144,12 @@ void loop() {
 
   if (inputState == READY_FOR_INPUT) {
     if (musicPlayer.readyForData()) {
+
+      delay(250);
+
+      if(!musicPlayer.readyForData())
+        return;
+      
       // Serial.println(F("[Auto continue]"));
       // the current track has stopped playing so we continue
       if (IncrementFileIterator(1)) {
