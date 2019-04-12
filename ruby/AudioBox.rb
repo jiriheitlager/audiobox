@@ -8,7 +8,11 @@ puts "Runing conversion script files or folders starting with '_' will be skippe
 master_folder = "master"
 glob = Dir.glob("#{master_folder}/*").reject{ |f| f.start_with?("#{master_folder}/_") }
 date = DateTime.now.strftime('%s')
+
 manifest = {}
+manifest["total_size"] = 0
+manifest["playRandomizedBitMask"] = 0
+
 files_count_array = Array.new
 outputFolder = "output-#{date}"
 folder_counter = 0
@@ -25,8 +29,13 @@ if glob.length <= 10
       file_parent_folder_basename = File.basename(file_in_audio_folder)
 
       manifest[folder_counter] = {}
-      path = "#{outputFolder}/#{folder_counter}"
 
+      manifest[folder_counter]["playRandomized"] = {}
+      manifest[folder_counter]["playRandomized"]=file_parent_folder_basename.end_with?("*")
+
+      manifest[folder_counter]["files"] = {}
+
+      path = "#{outputFolder}/#{folder_counter}"
       FileUtils.mkdir_p path
 
       files = Dir.glob("#{file_in_audio_folder}/**/*.mp3").reject{ |f| f.start_with?("_") }.sort
@@ -34,10 +43,14 @@ if glob.length <= 10
 
       files.each do |filename|
         outName = "#{files_counter}.mp3"
-        manifest[folder_counter][filename.gsub("#{master_folder}/", "")] = "#{path}/#{outName}"
+        manifest[folder_counter]["files"][filename.gsub("#{master_folder}/", "")] = "#{path}/#{outName}"
         FileUtils.cp(filename, "#{path}/#{outName}")
         total_size+=File.size(filename)
         files_counter +=1
+      end
+
+      if(manifest[folder_counter]["playRandomized"])
+            manifest["playRandomizedBitMask"] |= (1<<folder_counter)
       end
 
     files_counter = 0
@@ -54,12 +67,13 @@ end
 
 size_in_mb = bytesToMeg(total_size).to_s + ' MB'
 puts "total size #{size_in_mb} MB"
-manifest["total_size"] = size_in_mb
 
+manifest["total_size"]=size_in_mb
 puts JSON.pretty_generate(manifest)
 
 File.open("#{outputFolder}/nfo.txt","w") do |f|
-  f.write(files_count_array.join(","))
+  f.write(files_count_array.join(",")+"\r")
+  f.write(manifest["playRandomizedBitMask"])
 end
 
 File.open("#{outputFolder}/manifest.json","w") do |f|
