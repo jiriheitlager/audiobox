@@ -46,7 +46,7 @@ byte currentDirIndex = BYTE_MAX;
 byte inputState = READY_FOR_INPUT;
 bool startingUp = true;
 bool resetAtStart = false;
-
+int16_t randomPlayableDirBitMask = 0;
 
 int randomValue = 0;
 int startupPlayedIndex = BYTE_MAX;
@@ -118,6 +118,9 @@ void BuildPlaylistIndex() {
         // on from where it left off.
         tok = strtok(NULL, ",");
       }
+
+      randomPlayableDirBitMask = textFile.readStringUntil('\r').toInt();
+
       textFile.close();
     }
   }
@@ -214,7 +217,7 @@ void ContinuePlayingFromSession() {
   if (SD.exists(sessionTextfilePath))
   {
     File textFile = SD.open(sessionTextfilePath, FILE_READ);
-    if (textFile)
+    while (textFile.available())
     {
       storedDirIndex = textFile.readStringUntil('\n').toInt();
       storedFileIndex = textFile.readStringUntil('\n').toInt();
@@ -258,24 +261,18 @@ void PlayNext() {
 void PlayCurrent() {
   int fileIndexToPlay;
 
-   bool isRandomDir = currentDirIndex==0 || currentDirIndex==1 || currentDirIndex==2 || currentDirIndex==3 || currentDirIndex==4 || currentDirIndex==8;
-  if (isRandomDir && startupPlayedIndex != currentFileIndex) {
+  if (IsRandomDir(currentDirIndex) && startupPlayedIndex != currentFileIndex) {
     randomSeed(currentFileIndex + randomValue);
     fileIndexToPlay = random(0, sumFilesPerFolderCache[currentDirIndex]);
   } else {
     fileIndexToPlay = mod(currentFileIndex,sumFilesPerFolderCache[currentDirIndex]);
   }
-
-//  Serial.println("----- PlayCurrent() -----");
-//  Serial.print("sumFilesPerFolderCache[currentDirIndex]:");
-//  Serial.print(sumFilesPerFolderCache[currentDirIndex]);
-//  Serial.print("currentFileIndex:");
-//  Serial.print(currentFileIndex);
-//  Serial.print(" -> fileIndexToPlay:");
-//  Serial.print(fileIndexToPlay);
-//  Serial.println("-----------");
-
+  
   Play(currentDirIndex, fileIndexToPlay, true);
+}
+
+bool IsRandomDir(byte dirIndex){
+    return bitRead(randomPlayableDirBitMask, dirIndex) == 1;
 }
 
 int mod( int x, int y ){
@@ -283,13 +280,6 @@ int mod( int x, int y ){
 }
 
 void Play(int dirIndexToPlay, int fileIndexToPlay, bool saveToSD) {
-
-//  Serial.println("----- Play() -----");
-//  Serial.print("Playing dir:");
-//  Serial.print(dirIndexToPlay);
-//  Serial.print(" and file:");
-//  Serial.print(fileIndexToPlay);
-//  Serial.println("-----------");
 
   String fileIndexAsString = String(fileIndexToPlay);
   String dirIndexAsString = String(dirIndexToPlay);
