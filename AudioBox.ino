@@ -21,7 +21,7 @@
 
 #define VOLUME_PIN A1 // The volume pin which is connected to the potentiometer.
 #define PIN_REPLACE_FOR_11 A0 // The volume pin which is connected to the potentiometer.
-#define MAX_VOLUME 15 // Volume is the lower the louder.
+#define MAX_VOLUME 0 // Volume is the lower the louder.
 #define MIN_VOLUME 70 // Volume is the lower the louder.
 
 #define READY_FOR_INPUT  1 // No button is pressed and we can receive a button input.
